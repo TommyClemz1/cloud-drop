@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+
+  # Node.js Express API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    env_file: ./backend/.env
+    # Port 5000 is NOT exposed to the internet directly —
+    # only Nginx (inside Docker's internal network) can reach it
+    expose:
+      - "5000"
+    networks:
+      - clouddrop-network
+
+  # Nginx serving React + proxying API calls
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # At build time, tell React where the API lives
+        # Since Nginx proxies /api/ internally, we just use /api
+        REACT_APP_API_URL: ""
+    restart: always
+    ports:
+      # This is the ONLY port open to the internet
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - clouddrop-network
+
+networks:
+  clouddrop-network:
+    driver: bridge
